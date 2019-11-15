@@ -6,12 +6,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Scanner;
+import java.util.regex.Pattern;
 
 public class FileSearchApp {
 
     String path;
     String regex;
     String zipFileName;
+    // OPTIMIZATION
+    // Using the pattern class we ccan use our regular
+    // expression once and use as many time as we want without compiling
+    Pattern pattern;
 
     public String getPath() {
         return path;
@@ -27,6 +32,7 @@ public class FileSearchApp {
 
     public void setRegex(String regex) {
         this.regex = regex;
+        this.pattern = Pattern.compile(regex);
     }
 
     public String getZipFileName() {
@@ -95,9 +101,28 @@ public class FileSearchApp {
         return false;
     }
 
-    public boolean searchText(String test){
-        return true;
+    public boolean searchText(String text) {
+
+        // if regex commandline parameter was not optional that would be the solution
+        // but keep in that mind regex is optional
+      //  return text.contains(this.getRegex());
+
+        // therefore need to code defendsively
+        // this code below can be written in one line
+
+//        if (this.getRegex() == null) {
+//            return true;
+//        } else {
+//            return
+//        }
+        return (this.getRegex() == null) ? true : this.pattern.matcher(text).matches();
+
+        // FULL MATCH
+        // Pattern.compile("X").matcher("example").matches() = false;
+        // PARTIAL MATCH
+        // Pattern.compile("X").mathcer("example").find() = true;
     }
+
     public void addFileToZip(File file){
         System.out.println("addFileToZip: " + file);
     }
