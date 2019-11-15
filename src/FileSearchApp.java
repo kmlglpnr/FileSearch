@@ -1,12 +1,12 @@
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class FileSearchApp {
 
@@ -17,6 +17,9 @@ public class FileSearchApp {
     // Using the pattern class we ccan use our regular
     // expression once and use as many time as we want without compiling
     Pattern pattern;
+
+    List<File> zipFiles = new ArrayList<File>();
+
 
     public String getPath() {
         return path;
@@ -43,6 +46,12 @@ public class FileSearchApp {
         this.zipFileName = zipFileName;
     }
 
+
+    public void walkDirectory(String path) throws IOException{
+        walkDirectoryJava6(path);
+        zipFilesJava7();
+    }
+
     public void walkDirectoryJava6(String path) throws IOException{
         // create a first directory or path with given @argument = path
         File dir = new File(path);
@@ -53,7 +62,7 @@ public class FileSearchApp {
         for(File file : files){
             if(file.isDirectory()){
                 // if it is a directory do a recursive call
-                walkDirectoryJava6(file.getAbsolutePath());
+                walkDirectory(file.getAbsolutePath());
             } else {
                 processFile(file);
             }
@@ -124,7 +133,52 @@ public class FileSearchApp {
     }
 
     public void addFileToZip(File file){
-        System.out.println("addFileToZip: " + file);
+        if(getZipFileName() != null){
+            zipFiles.add(file);
+        }
+    }
+
+    public void zipFilesJava7() throws IOException{
+
+        // polishing up: try-with-resources allowed to skip finally clause
+
+        try(
+                ZipOutputStream out = new ZipOutputStream(new FileOutputStream(getZipFileName()))
+                ){
+            File baseDir = new File(getPath());
+
+            for(File file: zipFiles){
+                // fileName must be a relative oath, not an absolute one.
+                String fileName = getRelativeFileName(file, baseDir);
+
+                // add a Zip entry to ZipOutputStream
+                ZipEntry zipEntry = new ZipEntry(fileName);
+                zipEntry.setTime(file.lastModified());
+                out.putNextEntry(zipEntry);
+
+                // does the all buffers and copying of file to a zipEntry
+                Files.copy(file.toPath(), out);
+
+                out.closeEntry();
+
+            }
+        }
+    }
+
+    // replacing all the "\" with the "/" slashes
+    // and making sure that we do not have any front slashes at the very beginning.
+    public String getRelativeFileName(File file, File baseDir){
+        String fileName = file.getAbsolutePath().substring(baseDir.getAbsolutePath().length());
+
+        // IMPORTANT: the ZipEntry file name must use "/", not "\".
+        fileName = fileName.replace("\\", "/");
+
+        while (fileName.startsWith("/")){
+            fileName = fileName.substring(1);
+        }
+
+        return fileName;
+
     }
 
 
